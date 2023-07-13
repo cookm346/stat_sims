@@ -1,0 +1,54 @@
+---
+title: ''
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+
+theme_set(theme_light())
+```
+
+
+```{r}
+sd_n1 <- function(x){
+    sqrt( sum((x - mean(x))^2)  / (length(x) - 1))
+}
+
+sd_n <- function(x){
+    sqrt( sum((x - mean(x))^2)  / length(x))
+}
+
+sd_n1_vs_sd_n <- function(n_sims = 100000, sample_size, true_sd){
+    tibble(sim = 1:n_sims) %>%
+        mutate(data = map(sim, ~ rnorm(sample_size, 0, true_sd))) %>%
+        mutate(sd_n1 = map_dbl(data, sd_n1)) %>%
+        mutate(sd_n = map_dbl(data, sd_n)) %>%
+        mutate(sd_n1_closer = abs(sd_n1 - true_sd) < abs(sd_n - true_sd)) %>%
+        summarize(prop_sd_n1_closer = mean(sd_n1_closer))
+}
+
+params <- tibble(sample_size = c(2, 5, 10, 20, 50, 100, 
+                                 250, 500, 1000, 2500))
+
+results <- params %>%
+    mutate(results = map(sample_size, sd_n1_vs_sd_n, n_sims = 100000, true_sd = 1)) %>%
+    unnest(results)
+
+results %>%
+    ggplot(aes(sample_size, prop_sd_n1_closer)) +
+    geom_line() +
+    geom_point() +
+    geom_hline(yintercept = 0.5, linetype = "dashed") +
+    labs(x = "Sample size",
+         y = "Percent of samples where n - 1 is closer to true sd") +
+    scale_x_continuous(labels = scales::label_comma()) +
+    scale_y_continuous(labels = scales::label_percent(accuracy = 1), 
+                       limits = c(0.5, 0.8))
+
+```
+

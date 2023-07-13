@@ -1,0 +1,55 @@
+---
+title: ''
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(vroom)
+library(glue)
+library(broom)
+
+theme_set(theme_light())
+
+```
+
+```{r}
+
+gen_data <- function(n_rows, n_cols){
+    gen_tbl(n_rows, n_cols + 1, col_types = paste0(rep("d", n_cols + 1), collapse = "")) %>%
+        rename(y = glue("X{n_cols+1}"))
+}
+
+regression_r2 <- function(n_sims = 1000, n_rows, n_cols){
+    tibble(sim = 1:n_sims) %>%
+        mutate(data = map(sim, ~ gen_data(n_rows = n_rows, n_cols = n_cols))) %>%
+        mutate(lm = map(data, ~ lm(y ~ ., data = .))) %>%
+        mutate(lm_tidy = map(lm, glance)) %>%
+        unnest(lm_tidy) %>%
+        summarize(mean_r2 = mean(r.squared))
+}
+
+params <- crossing(n_rows = c(10, 25, 50, 100, 250),
+                   n_cols = c(1, 2, 5, 10, 25)) %>%
+    filter(n_rows > n_cols)
+
+params %>%
+    mutate(results = map2(n_rows, n_cols, regression_r2, n_sims = 10)) %>%
+    unnest(results) %>%
+    group_by(n_cols) %>%
+    mutate(label = ifelse(n_rows == min(n_rows), n_cols, "")) %>%
+    ungroup() %>%
+    ggplot(aes(n_rows, mean_r2, color = as_factor(n_cols), label = label)) +
+    geom_line() +
+    geom_point() +
+    geom_text(hjust = 1.5, show.legend = FALSE) +
+    labs(x = "Number of rows",
+         y = "Average R Squared") +
+    theme(legend.position = "none")
+
+```
+
