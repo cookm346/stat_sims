@@ -1,8 +1,20 @@
+### Simulation of computation of confidence interval of the mean
+
+Often we have a population and we want to know the average of some
+variable (e.g., height) in that population. Because we can’t measure the
+population in it’s entirety, we sample some of the population and use
+the average of that sample as a window to the larger population. The
+confidence interval of the mean provides a range of possible values for
+the population mean. For 95% confidence interval, 95% of sampled
+intervals would contain the true population mean.
+
+The simulation code demonstrates this though monte carlo simulation:
+
 ``` r
 library(tidyverse)
 library(patchwork)
 
-n_samples <- 50
+n_samples <- 30
 n <- 30
 
 pop_mean <- 0
